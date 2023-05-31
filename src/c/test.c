@@ -70,12 +70,14 @@ int main(void)
     ] \
 }";
     eos_t *eos = eos_from_json(str);
-    double temperature = 300.0;
-    double density = 10000.0;
+    double temperature = 300.0; // Kelvin
+    double density = 10000.0;   // mol / m³
     double molefracs[] = {0.1, 0.9};
     double pressure = pressure_bar(eos, temperature, density, molefracs, 2);
     printf("pressure: %f bar\n", pressure);
     printf("address: %ld \n", (int64_t)eos);
+    double a_v_cast = da_dv((int64_t)eos, temperature, density, molefracs, 2);
+    printf("dA_dv (cast): %f\n", a_v_cast);
     double a_v = da_dv(eos, temperature, density, molefracs, 2);
     printf("dA_dv: %f\n", a_v);
     free_eos_ptr(eos);
