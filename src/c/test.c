@@ -5,7 +5,9 @@ typedef struct eos eos_t;
 extern eos_t *eos_from_json(const char *str);
 extern void free_eos_ptr(eos_t *);
 extern double pressure_bar(eos_t *eos_ptr, double temperature, double density, const double *molefracs, size_t len);
+extern double reduced_entropy(eos_t *eos_ptr, double temperature, double density, const double *molefracs, size_t len);
 extern double da_dv(eos_t *eos_ptr, double temperature, double density, const double *molefracs, size_t len);
+extern int get_Arxy(const long long int uuid, const int NT, const int ND, const double T, const double rho, const double* molefrac, const int Ncomp, double *val, char* errmsg, int errmsg_length);
 
 int main(void)
 {
@@ -70,15 +72,48 @@ int main(void)
     ] \
 }";
     eos_t *eos = eos_from_json(str);
-    double temperature = 300.0; // Kelvin
-    double density = 10000.0;   // mol / m³
+
+    // state
+    double temperature = 300.0; // K
+    double density = 10000;   // mol / m³
     double molefracs[] = {0.1, 0.9};
+    double rgas = 8.3145; // J / mol / K
+    
+    // error message
+    int errmsg_length = 300;
+    char errmsg[errmsg_length];
+
+    // status and return value    
+    int status;
+    double value = 0.0;
+    double a00 = 0.0, a10 = 0.0;
+
+    status = get_Arxy(eos, 0, 1, temperature, density, molefracs, 2, &value, errmsg, 100);
+    printf("Status: %d, 01: %f\n", status, 1e-5 * density * rgas * temperature * (1.0 + value));
+    
+    // 
     double pressure = pressure_bar(eos, temperature, density, molefracs, 2);
     printf("pressure: %f bar\n", pressure);
+
+    double s_red = reduced_entropy(eos, temperature, density, molefracs, 2);
+    printf("reduced_entropy: %f\n", s_red);
+
+    get_Arxy(eos, 0, 0, temperature, density, molefracs, 2, &a00, errmsg, 100);
+    get_Arxy(eos, 1, 0, temperature, density, molefracs, 2, &a10, errmsg, 100);
+    printf("reduced_entropy: %f (a00: %f, a10: %f)\n", a10 - a00, a00, a10);
+
     printf("address: %ld \n", (int64_t)eos);
     double a_v_cast = da_dv((int64_t)eos, temperature, density, molefracs, 2);
     printf("dA_dv (cast): %f\n", a_v_cast);
     double a_v = da_dv(eos, temperature, density, molefracs, 2);
     printf("dA_dv: %f\n", a_v);
+
+    // print error message if there is one
+    if (status == -1) {
+        printf("Error: %s\n", errmsg);
+    }
+
+    // free equation of state and exit
     free_eos_ptr(eos);
+    return status;
 }

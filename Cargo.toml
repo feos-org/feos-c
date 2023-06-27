@@ -9,10 +9,10 @@ crate-type = ["cdylib"]
 [dependencies]
 thiserror = "1.0"
 quantity = "0.6"
-feos-core = "*"
-feos = { version = "0.4", features = ["pcsaft"] }
+feos-core = { git = "https://github.com/feos-org/feos", branch = "refactor_ideal_gas_v2" }
+feos = { git = "https://github.com/feos-org/feos", branch = "refactor_ideal_gas_v2", features = ["pcsaft"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 libc = "0.2"
 ndarray = "0.15"
-num-dual = "0.6"
+num-dual = "0.7"
