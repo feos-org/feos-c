@@ -1,6 +1,6 @@
 {
-    "model": "PC-SAFT",
-    "substance_parameters": [
+    "residual_model": "PC-SAFT",
+    "residual_substance_parameters": [
         {
             "identifier": {
                 "cas": "74-82-8",
@@ -34,7 +34,7 @@
             "molarweight": 84.147
         }
     ],
-    "binary_parameters": {
+    "residual_binary_parameters": {
         "id1": {
             "cas": "67-56-1",
             "name": "methanol",

@@ -1,19 +1,21 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <feos.h>
+// typedef struct feos_eos feos_eos_t;
+// extern feos_eos_t *feos_eos_from_json(const char *str);
+// extern void feos_eos_free(feos_eos_t *);
 
-typedef struct eos eos_t;
-extern eos_t *eos_from_json(const char *str);
-extern void free_eos_ptr(eos_t *);
-extern double pressure_bar(eos_t *eos_ptr, double temperature, double density, const double *molefracs, size_t len);
-extern double reduced_entropy(eos_t *eos_ptr, double temperature, double density, const double *molefracs, size_t len);
-extern double da_dv(eos_t *eos_ptr, double temperature, double density, const double *molefracs, size_t len);
-extern int get_Arxy(const long long int uuid, const int NT, const int ND, const double T, const double rho, const double* molefrac, const int Ncomp, double *val, char* errmsg, int errmsg_length);
+// typedef struct feos_state feos_state_t;
+// extern feos_state_t *feos_state_new_npt(const feos_eos_t *, double, double, const double*, size_t, const char *);
+// extern void feos_state_free(feos_state_t *);
+// extern double feos_state_pressure(feos_state_t *, size_t);
 
 int main(void)
 {
     char *str = "{ \
-    \"model\": \"PC-SAFT\", \
-    \"substance_parameters\": [ \
+    \"residual_model\": \"PC-SAFT\", \
+    \"ideal_gas_model\": \"\", \
+    \"residual_substance_parameters\": [ \
         { \
             \"identifier\": { \
                 \"cas\": \"74-82-8\", \
@@ -47,7 +49,7 @@ int main(void)
             \"molarweight\": 84.147 \
         } \
     ], \
-    \"binary_parameters\": [ \
+    \"residual_binary_parameters\": [ \
         { \
             \"id1\": { \
                 \"cas\": \"67-56-1\", \
@@ -71,49 +73,55 @@ int main(void)
         } \
     ] \
 }";
-    eos_t *eos = eos_from_json(str);
+    char *str2 = "{ \
+    \"residual_model\": \"PC-SAFT\", \
+    \"ideal_gas_model\": \"\", \
+    \"residual_substance_parameters\": [ \
+        { \
+            \"identifier\": { \
+                \"cas\": \"74-82-8\", \
+                \"name\": \"methane\", \
+                \"iupac_name\": \"methane\", \
+                \"smiles\": \"C\", \
+                \"inchi\": \"InChI=1/CH4/h1H4\", \
+                \"formula\": \"CH4\" \
+            }, \
+            \"model_record\": { \
+                \"m\": 1.0, \
+                \"sigma\": 3.7039, \
+                \"epsilon_k\": 150.03 \
+            }, \
+            \"molarweight\": 16.043 \
+        } \
+    ] \
+}";
+    feos_equation_of_state_t *eos = feos_eos_from_json(str2);
 
     // state
-    double temperature = 300.0; // K
-    double density = 10000;   // mol / m³
-    double molefracs[] = {0.1, 0.9};
-    double rgas = 8.3145; // J / mol / K
-    
-    // error message
-    int errmsg_length = 300;
-    char errmsg[errmsg_length];
+    double temperature = 200.0; // K
+    double pressure = 15.0;     // bar
+    double moles[] = {1.0};     // mol for each component
+    size_t n = sizeof(moles) / sizeof(size_t); // number of components
 
-    // status and return value    
-    int status;
-    double value = 0.0;
-    double a00 = 0.0, a10 = 0.0;
+    feos_state_t *state = feos_state_new_npt(
+        eos, // equation of state
+        temperature, // temperature in K
+        pressure, // pressure in bar
+        moles, // number of mols
+        n, // number of components
+        "stable" // which phase to compute (stable, liquid, vapor)
+    );
 
-    status = get_Arxy(eos, 0, 1, temperature, density, molefracs, 2, &value, errmsg, 100);
-    printf("Status: %d, 01: %f\n", status, 1e-5 * density * rgas * temperature * (1.0 + value));
+    double pressure_calculated = feos_state_pressure(state, 2);
+    double density = feos_state_density(state);
     
-    // 
-    double pressure = pressure_bar(eos, temperature, density, molefracs, 2);
+    printf("State stable? %s\n", feos_state_is_stable(state) ? "true" : "false");
     printf("pressure: %f bar\n", pressure);
-
-    double s_red = reduced_entropy(eos, temperature, density, molefracs, 2);
-    printf("reduced_entropy: %f\n", s_red);
-
-    get_Arxy(eos, 0, 0, temperature, density, molefracs, 2, &a00, errmsg, 100);
-    get_Arxy(eos, 1, 0, temperature, density, molefracs, 2, &a10, errmsg, 100);
-    printf("reduced_entropy: %f (a00: %f, a10: %f)\n", a10 - a00, a00, a10);
-
-    printf("address: %ld \n", (int64_t)eos);
-    double a_v_cast = da_dv((int64_t)eos, temperature, density, molefracs, 2);
-    printf("dA_dv (cast): %f\n", a_v_cast);
-    double a_v = da_dv(eos, temperature, density, molefracs, 2);
-    printf("dA_dv: %f\n", a_v);
-
-    // print error message if there is one
-    if (status == -1) {
-        printf("Error: %s\n", errmsg);
-    }
+    printf("density: %f mol/m3\n", density);
 
     // free equation of state and exit
-    free_eos_ptr(eos);
-    return status;
+    feos_state_free(state);
+    feos_eos_free(eos);
+
+    return 0;
 }
