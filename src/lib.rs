@@ -10,12 +10,14 @@ use std::ffi::CStr;
 use std::slice;
 use std::sync::Arc;
 
+pub mod pcsaft;
+
 #[allow(non_camel_case_types)]
 pub struct feos_equation_of_state_t(Arc<EquationOfState<IdealGasModel, ResidualModel>>);
 
 #[no_mangle]
 #[allow(non_camel_case_types)]
-pub extern "C" fn feos_eos_from_json(json: *const c_char) -> *mut feos_equation_of_state_t {
+pub extern fn feos_eos_from_json(json: *const c_char) -> *mut feos_equation_of_state_t {
     let c_str = unsafe {
         assert!(!json.is_null());
         CStr::from_ptr(json)
@@ -55,7 +57,7 @@ pub extern "C" fn feos_eos_from_json(json: *const c_char) -> *mut feos_equation_
 
 #[no_mangle]
 #[allow(non_camel_case_types)]
-pub extern "C" fn feos_eos_free(ptr: *mut feos_equation_of_state_t) {
+pub extern fn feos_eos_free(ptr: *mut feos_equation_of_state_t) {
     if !ptr.is_null() {
         unsafe {
             drop(Box::from_raw(ptr));
@@ -69,7 +71,7 @@ pub struct feos_state_t(State<EquationOfState<IdealGasModel, ResidualModel>>);
 
 #[no_mangle]
 #[allow(non_camel_case_types)]
-pub extern "C" fn feos_state_free(ptr: *mut feos_state_t) {
+pub extern fn feos_state_free(ptr: *mut feos_state_t) {
     if !ptr.is_null() {
         unsafe {
             drop(Box::from_raw(ptr));
@@ -79,7 +81,7 @@ pub extern "C" fn feos_state_free(ptr: *mut feos_state_t) {
 
 #[no_mangle]
 #[allow(non_camel_case_types)]
-pub extern "C" fn feos_state_new_npt(
+pub extern fn feos_state_new_npt(
     eos_ptr: *const feos_equation_of_state_t,
     t_k: f64,
     p_bar: f64,
@@ -118,7 +120,7 @@ pub extern "C" fn feos_state_new_npt(
 
 #[no_mangle]
 #[allow(non_camel_case_types)]
-pub extern "C" fn feos_state_pressure(
+pub extern fn feos_state_pressure(
     state_ptr: *const feos_state_t,
     contributions: size_t,
 ) -> f64 {
@@ -136,7 +138,7 @@ pub extern "C" fn feos_state_pressure(
 
 #[no_mangle]
 #[allow(non_camel_case_types)]
-pub extern "C" fn feos_state_density(state_ptr: *const feos_state_t) -> f64 {
+pub extern fn feos_state_density(state_ptr: *const feos_state_t) -> f64 {
     let state = unsafe {
         assert!(!state_ptr.is_null());
         &*state_ptr
@@ -150,7 +152,7 @@ pub extern "C" fn feos_state_density(state_ptr: *const feos_state_t) -> f64 {
 /// @returns mass density in units of kg/m3
 #[no_mangle]
 #[allow(non_camel_case_types)]
-pub extern "C" fn feos_state_mass_density(state_ptr: *const feos_state_t) -> f64 {
+pub extern fn feos_state_mass_density(state_ptr: *const feos_state_t) -> f64 {
     let state = unsafe {
         assert!(!state_ptr.is_null());
         &*state_ptr
@@ -168,7 +170,7 @@ pub extern "C" fn feos_state_mass_density(state_ptr: *const feos_state_t) -> f64
 /// @returns True if the state is stable, false otherwise.
 #[no_mangle]
 #[allow(non_camel_case_types)]
-pub extern "C" fn feos_state_is_stable(state_ptr: *const feos_state_t) -> bool {
+pub extern fn feos_state_is_stable(state_ptr: *const feos_state_t) -> bool {
     let state = unsafe {
         assert!(!state_ptr.is_null());
         &*state_ptr

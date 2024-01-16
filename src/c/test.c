@@ -95,32 +95,44 @@ int main(void)
         } \
     ] \
 }";
-    feos_equation_of_state_t *eos = feos_eos_from_json(str2);
+
+    // array of pointers to strings
+    const char *substances[] = {"C"};
+    feos_pcsaft_parameters_t *parameters = feos_pcsaft_parameters_from_json(
+        substances,
+        sizeof(substances) / sizeof(const char *),
+        "esper2023.json",
+        NULL, //"rehner2023_binary.json",
+        "smiles");
+    feos_equation_of_state_t *eos = feos_eos_pcsaft(parameters);
+    feos_pcsaft_parameters_free(parameters);
+    // feos_equation_of_state_t *eos = feos_eos_from_json(str2);
 
     // state
-    double temperature = 200.0; // K
-    double pressure = 15.0;     // bar
-    double moles[] = {1.0};     // mol for each component
+    double temperature = 200.0;                // K
+    double pressure = 15.0;                    // bar
+    double moles[] = {1.0};                    // mol for each component
     size_t n = sizeof(moles) / sizeof(size_t); // number of components
 
     feos_state_t *state = feos_state_new_npt(
-        eos, // equation of state
+        eos,         // equation of state
         temperature, // temperature in K
-        pressure, // pressure in bar
-        moles, // number of mols
-        n, // number of components
-        "stable" // which phase to compute (stable, liquid, vapor)
+        pressure,    // pressure in bar
+        moles,       // number of mols
+        n,           // number of components
+        "stable"     // which phase to compute (stable, liquid, vapor)
     );
 
     double pressure_calculated = feos_state_pressure(state, 2);
     double density = feos_state_density(state);
-    
+
     printf("State stable? %s\n", feos_state_is_stable(state) ? "true" : "false");
     printf("pressure: %f bar\n", pressure);
     printf("density: %f mol/m3\n", density);
 
-    // free equation of state and exit
     feos_state_free(state);
+
+    // decrements counter of parameters to zero if the were deallocated beforehand.
     feos_eos_free(eos);
 
     return 0;
